@@ -72,10 +72,16 @@
             if($PSCmdlet.ParameterSetName -eq "All"){
                 $SubList = Get-AzureADSubscribedSku
                 foreach($Sub in $SubList){
+                    if($Sub.PrepaidUnits.Enabled -gt 0){
+                        $EnabledUnits = $Sub.PrepaidUnits.Enabled
+                    }
+                    Else{
+                        $EnabledUnits = 0
+                    }
                     $Table = New-Object PSObject -Property @{
                         SKUPartNumber = $Sub.SKUPartNumber
                         ConsumedUnits = $Sub.ConsumedUnits
-                        TotalUnits = ($Sub | Select-Object -ExpandProperty PrepaidUnits).Enabled
+                        TotalUnits = $EnabledUnits
                     }
                     $SubTable += $Table
                 }
@@ -84,10 +90,16 @@
             if ($PSCmdlet.ParameterSetName -eq "Sub"){
                 try{
                     if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
+                        if($Sub.PrepaidUnits.Enabled -gt 0){
+                            $EnabledUnits = $Sub.PrepaidUnits.Enabled
+                        }
+                        Else{
+                            $EnabledUnits = 0
+                        }
                         $Table = New-Object PSObject -Property @{
                             SKUPartNumber = $SubList.SKUPartNumber
                             ConsumedUnits = $SubList.ConsumedUnits
-                            TotalUnits = ($Sublist | Select-Object -ExpandProperty PrepaidUnits).Enabled
+                            TotalUnits = $EnabledUnits
                         }
                         $SubTable += $Table
                     }

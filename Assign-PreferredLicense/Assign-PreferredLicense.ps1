@@ -142,7 +142,6 @@ function Get-LicenseUsage{
         [String]$Admin
     )
     try{
-        Set-PSDebug -Step
         Get-AADModules
         if($PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
             if($BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
