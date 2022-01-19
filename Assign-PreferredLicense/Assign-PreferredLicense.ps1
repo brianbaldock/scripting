@@ -76,10 +76,17 @@ function Get-LicenseInfo{
             if($PSCmdlet.ParameterSetName -eq "All"){
                 $SubList = Get-AzureADSubscribedSku
                 foreach($Sub in $SubList){
+                    if($Sub.PrepaidUnits.Enabled -gt 0){
+                        $EnabledUnits = $Sub.PrepaidUnits.Enabled
+                    }
+                    Else{
+                        $EnabledUnits = 0
+                    }
+                    
                     $Table = New-Object PSObject -Property @{
                         SKUPartNumber = $Sub.SKUPartNumber
                         ConsumedUnits = $Sub.ConsumedUnits
-                        TotalUnits = ($Sub | Select-Object -ExpandProperty PrepaidUnits).Enabled
+                        TotalUnits = $EnabledUnits
                     }
                     $SubTable += $Table
                 }
@@ -88,10 +95,16 @@ function Get-LicenseInfo{
             if ($PSCmdlet.ParameterSetName -eq "Sub"){
                 try{
                     if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
+                        if($Sub.PrepaidUnits.Enabled -gt 0){
+                            $EnabledUnits = $Sub.PrepaidUnits.Enabled
+                        }
+                        Else{
+                            $EnabledUnits = 0
+                        }
                         $Table = New-Object PSObject -Property @{
                             SKUPartNumber = $SubList.SKUPartNumber
                             ConsumedUnits = $SubList.ConsumedUnits
-                            TotalUnits = ($Sublist | Select-Object -ExpandProperty PrepaidUnits).Enabled
+                            TotalUnits = $EnabledUnits
                         }
                         $SubTable += $Table
                     }
@@ -129,9 +142,11 @@ function Get-LicenseUsage{
         [String]$Admin
     )
     try{
+        Set-PSDebug -Step
         Get-AADModules
         if($PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
             if($BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
+                Set-PSDebug -Step
                 if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
                     #Do stuff here like assign user to a group that gets this license
                     Write-Output "There are enough $($PreferredLicense) left."
@@ -143,8 +158,14 @@ function Get-LicenseUsage{
                         Write-Output "There are not enough $($PreferredLicense) licences left. Use $($BackupLicense) instead."
                         break
                     }
+                    else{
+                        
+                    }
                 }
             }
+        }
+        else{
+            Write-Output "You're not getting into Get-LicenseInfo yo!"
         }
     }
     catch{
