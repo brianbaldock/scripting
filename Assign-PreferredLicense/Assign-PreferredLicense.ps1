@@ -4,7 +4,7 @@
 # Functions:
 function Get-ActiveAADConnection{
     param(
-        [in16]$ConCheck
+        [int16]$ConCheck
     )
     try{
         switch($ConCheck){
@@ -96,7 +96,7 @@ function Get-LicenseInfo{
                         $SubTable += $Table
                     }
                     else{
-                        Write-Output "No subscription by the name $($SubscriptionName) found."
+                        Write-Output "`nNo license by the name $($SubscriptionName) has been found. Verify license name by running Get-LicenseInfo.`n"
                         break
                     }
                 }
@@ -111,10 +111,9 @@ function Get-LicenseInfo{
         }
     }
     end {
-        return $SubTable | Format-Table -Property SKUPartNumber, ConsumedUnits, TotalUnits
+        return $SubTable
     }
 }
-
 function Get-LicenseUsage{
     param(
         [Parameter(Mandatory=$True,
@@ -133,15 +132,19 @@ function Get-LicenseUsage{
         Get-AADModules
         if($PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
             if($BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
-                Write-Output "all good in da hood"
+                if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
+                    #Do stuff here like assign user to a group that gets this license
+                    Write-Output "There are enough $($PreferredLicense) left."
+                    break
+                }
+                else{
+                    if($BackupLicense.ConsumedUnits -lt $BackupLicense.TotalUnits){
+                        #Do other stuff here, like assign the user to this group because the preferred license has no licenses left etc...
+                        Write-Output "There are not enough $($PreferredLicense) licences left. Use $($BackupLicense) instead."
+                        break
+                    }
+                }
             }
-            else{
-                Write-Output "`nNo license of this name found. Verify backup license name by running Get-LicenseInfo.`n"
-            }
-        }
-        else{
-            Write-Output "`nNo license of this name found. Verify preferred license name by running Get-LicenseInfo.`n"
-            break
         }
     }
     catch{
@@ -149,3 +152,4 @@ function Get-LicenseUsage{
         break
     }
 }
+Get-LicenseUsage
