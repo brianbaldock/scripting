@@ -101,11 +101,11 @@
                     break
                 }
             }
-            
+        }   
         catch{
             return $_.Exception.Message
         }
-
+    }
     end {
         return $SubTable | Format-Table -Property SKUPartNumber, ConsumedUnits, TotalUnits
     }
