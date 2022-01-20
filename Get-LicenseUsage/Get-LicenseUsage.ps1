@@ -42,7 +42,7 @@
     .EXAMPLE
         Validate if the preferred license has available licenses if not validate that the backup license has available licenses.
         . .\Get-LicenseUsage
-        Get-LicenseUsage -Admin <USERPRINCIPALNAME> -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
+        Get-LicenseUsage -Admin admin@contoso.com -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
 
         If you don't know what your subscription SKUs are you can run the following script to find them:
         https://github.com/brianbaldock/scripting/tree/main/Get-LicensingInfo
