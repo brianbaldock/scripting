@@ -43,6 +43,9 @@
         Validate if the preferred license has available licenses if not validate that the backup license has available licenses.
         . .\Get-LicenseUsage
         Get-LicenseUsage -Admin <USERPRINCIPALNAME> -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
+
+        If you don't know what your subscription SKUs are you can run the following script to find them:
+        https://github.com/brianbaldock/scripting/tree/main/Get-LicensingInfo
 #>
 
 # Functions:
@@ -94,9 +97,7 @@ function Get-AADModules{
         return $_.Exception.Message
     }
 }
-
 function Get-LicenseInfo{
-    # This is a trimmed down adaptation of the Get-LicenseInfo.ps1 @ https://github.com/brianbaldock/scripting
     param (
         [Parameter(Mandatory=$True,
         HelpMessage='Enter the admin account for the tenant - Example "admin@domain.com".')]
@@ -138,8 +139,29 @@ function Get-LicenseInfo{
         return $SubTable
     }
 }
-
 function Get-LicenseUsage{
+    <#
+    .DESCRIPTION
+    The idea is to be able to detect a preferred licenses current usage and assign a user to it and only assign the user the alternative 
+    subscription if the preferred license is completely in use. This will allow for automated assigning of different licenses according to current usage.
+
+    .PARAMETER Admin
+        Madatory Parameter - Admin account utilized for accessing the Microsoft 365 platform
+    
+    .PARAMETER PreferredLicense
+        This is the license you would prefer a user be assigned unless there is no available licenses
+
+    .PARAMETER BackupLicense
+        This is the license you would like to use in case the preferred license has no available licenses
+  
+    .EXAMPLE
+        Validate if the preferred license has available licenses if not validate that the backup license has available licenses.
+        . .\Get-LicenseUsage
+        Get-LicenseUsage -Admin <USERPRINCIPALNAME> -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
+
+        If you don't know what your subscription SKUs are you can run the following script to find them:
+        https://github.com/brianbaldock/scripting/tree/main/Get-LicensingInfo
+    #>
     param(
         [Parameter(Mandatory=$True,
         HelpMessage="Provide preferred license name.")]
