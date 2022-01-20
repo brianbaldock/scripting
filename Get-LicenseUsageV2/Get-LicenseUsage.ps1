@@ -43,126 +43,92 @@
         Validate if the preferred license has available licenses if not validate that the backup license has available licenses.
         .\Get-LicenseUsage.ps1 -Admin admin@contoso.com -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
 #>
-[CmdletBinding]{
-    param(
-        [Parameter(Mandatory=$True,
-        HelpMessage='Provide preferred license name.')]
-        [String]$PreferredLicense,
+[CmdletBinding()]
+param (
+    [Parameter(Mandatory=$True,
+    HelpMessage='Enter the admin account for the tenant - Example admin@contoso.com.')]
+    [String]$Admin,
 
-        [Parameter(Mandatory=$True,
-        HelpMessage='Provide backup license name.')]
-        [string]$BackupLicense,
+    [Parameter(Mandatory=$True,
+    HelpMessage='Provide preferred license name.')]
+    [String]$PreferredLicense,
 
-        [Parameter(Mandatory=$True,
-        HelpMessage='Enter the admin account for the tenant - Example admin@contoso.com.')]
-        [String]$Admin
-    )
-    begin {
-        function CheckModules{
-            try{
-                #Test for AzureAD or AzureADPreview Module
-                if(Get-Module -ListAvailable -Name "AzureAD"){
-                    return 1
-                }
-                elseif(Get-Module -ListAvailable -Name "AzureADPreview"){
-                    return 2
-                }
-                else{
-                    return 3
-                }
-            }
-            catch{
-                return $_.Exception.Message
-            }
-        }
+    [Parameter(Mandatory=$True,
+    HelpMessage='Provide backup license name.')]
+    [string]$BackupLicense
+)
+
+begin {
+    function CheckModules{
         try{
-            switch(CheckModules){
-                1 {Import-Module AzureAD}
-                2 {Import-Module AzureADPreview}
-                3 {
-                    Write-Output "Please install the Azure AD powershell module by following the instructions at this link: https://aka.ms/AAau56t"
-                    break
-                }
+            #Test for AzureAD or AzureADPreview Module
+            if(Get-Module -ListAvailable -Name "AzureAD"){
+                return 1
+            }
+            elseif(Get-Module -ListAvailable -Name "AzureADPreview"){
+                return 2
+            }
+            else{
+                return 3
             }
         }
         catch{
             return $_.Exception.Message
-        }            
-        #Check if already connected to AAD PowerShell:
-        try{
-            $TestConnection = Get-AzureADTenantDetail
-        }
-        catch [Microsoft.Open.Azure.AD.CommonLibrary.AadNeedAuthenticationException]{
-            try{
-                Connect-AzureAD -AccountId $Admin | Out-Null
-            }
-            catch{
-                return $_.Exception.Message
-            }
         }
     }
-    Process{
-        function Get-LicenseInfo{
-            param(
-                [String]$SubscriptionName
-            )
-            try{
-                if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
-                    if($Sublist.PrepaidUnits.Enabled -gt 0){
-                        $EnabledUnits = $Sublist.PrepaidUnits.Enabled
-                    }
-                    Else{
-                        $EnabledUnits = 0
-                    }
-                    $Table = New-Object PSObject -Property @{
-                        SKUPartNumber = $SubList.SKUPartNumber
-                        ConsumedUnits = $SubList.ConsumedUnits
-                        TotalUnits = $EnabledUnits
-                    }
-                    $SubTable += $Table
-                    return $SubTable
-                }
-                else{
-                    Write-Output "No subscription by the name $($SubscriptionName) found."
-                    break
-                }
-            }
-            catch{
-                return $_.Exception.Message
+    try{
+        switch(CheckModules){
+            1 {Import-Module AzureAD}
+            2 {Import-Module AzureADPreview}
+            3 {
+                Write-Output "Please install the Azure AD powershell module by following the instructions at this link: https://aka.ms/AAau56t"
                 break
             }
         }
+    }
+    catch{
+        return $_.Exception.Message
+    }            
+    #Check if already connected to AAD PowerShell:
+    try{
+        $TestConnection = Get-AzureADTenantDetail
+    }
+    catch [Microsoft.Open.Azure.AD.CommonLibrary.AadNeedAuthenticationException]{
         try{
-            if([array]$PreferredLicense = Get-LicenseInfo -SubscriptionName $PreferredLicense){
-                if([array]$BackupLicense = Get-LicenseInfo -SubscriptionName $BackupLicense){
-                    if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
-                        <#
-                            Do stuff here, 
-                            Example: Assign a user to a specific group if the preferred license is available.
-                            Add a specific AD attribute etc.
-                        #>
-                        Write-Output "There are $($PreferredLicense.TotalUnits - $PreferredLicense.ConsumedUnits) preferred $($PreferredLicense.SkuPartNumber) left."
-                        break
-                    }
-                    else{
-                        if($BackupLicense.ConsumedUnits -lt $BackupLicense.TotalUnits){
-                            <#
-                                Do other stuff here, 
-                                Example: Assign a user to a specific group if the preferred license isn't available, using the "backup" license.
-                                Add a specific AD attribute etc.
-                            #>
-                            Write-Output "There are not enough $($PreferredLicens.SkuPartNumber) licences left. Use $($BackupLicense.SkuPartNumber) instead."
-                            break
-                        }
-                        else{
-                            Write-Output "There is a problem comparing the license usage versus availability."
-                            break
-                        }
-                    }
+            Connect-AzureAD -AccountId $Admin | Out-Null
+        }
+        catch{
+            return $_.Exception.Message
+        }
+    }
+}
+
+process {
+    function Get-LicenseInfo{
+        param(
+            [Parameter(Mandatory=$True,
+            HelpMessage='Enter the Subscription Name - Example "SPE_E5".')]
+            [String]$SubscriptionName
+        )
+        try{
+            if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
+                if($Sublist.PrepaidUnits.Enabled -gt 0){
+                    $EnabledUnits = $Sublist.PrepaidUnits.Enabled
                 }
+                Else{
+                    $EnabledUnits = 0
+                }
+                $Table = New-Object PSObject -Property @{
+                    SKUPartNumber = $SubList.SKUPartNumber
+                    ConsumedUnits = $SubList.ConsumedUnits
+                    TotalUnits = $EnabledUnits
+                }
+                $SubTable += $Table
+                return $SubTable
             }
             else{
-                Write-Output "Something is preventing you from accessing Get-LicenseInfo function."
+                Write-Output "No subscription by the name $($SubscriptionName) found."
+                break
             }
         }
         catch{
@@ -170,4 +136,44 @@
             break
         }
     }
+}
+
+end {
+    try{
+        if([array]$PreferredLicense = Get-LicenseInfo -SubscriptionName $PreferredLicense){
+            if([array]$BackupLicense = Get-LicenseInfo -SubscriptionName $BackupLicense){
+                if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
+                    <#
+                        Do stuff here, 
+                        Example: Assign a user to a specific group if the preferred license is available.
+                        Add a specific AD attribute etc.
+                    #>
+                    Write-Output "There are $($PreferredLicense.TotalUnits - $PreferredLicense.ConsumedUnits) preferred $($PreferredLicense.SkuPartNumber) left."
+                    break
+                }
+                else{
+                    if($BackupLicense.ConsumedUnits -lt $BackupLicense.TotalUnits){
+                        <#
+                            Do other stuff here, 
+                            Example: Assign a user to a specific group if the preferred license isn't available, using the "backup" license.
+                            Add a specific AD attribute etc.
+                        #>
+                        Write-Output "There are not enough $($PreferredLicense.SkuPartNumber) licences left. Use $($BackupLicense.SkuPartNumber) instead."
+                        break
+                    }
+                    else{
+                        Write-Output "There is a problem comparing the license usage versus availability."
+                        break
+                    }
+                }
+            }
+        }
+        else{
+            Write-Output "Something is preventing you from accessing Get-LicenseInfo function."
+        }
+    }
+    catch{
+        return $_.Exception.Message
+        break
+    }        
 }

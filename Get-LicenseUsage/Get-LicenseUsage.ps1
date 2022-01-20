@@ -195,7 +195,7 @@ function Get-LicenseUsage{
                             Example: Assign a user to a specific group if the preferred license isn't available, using the "backup" license.
                             Add a specific AD attribute etc.
                         #>
-                        Write-Output "There are not enough $($PreferredLicens.SkuPartNumber) licences left. Use $($BackupLicense.SkuPartNumber) instead."
+                        Write-Output "There are not enough $($PreferredLicense.SkuPartNumber) licences left. Use $($BackupLicense.SkuPartNumber) instead."
                         break
                     }
                     else{
