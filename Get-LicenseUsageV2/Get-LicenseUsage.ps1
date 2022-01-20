@@ -148,7 +148,7 @@ end {
                         Example: Assign a user to a specific group if the preferred license is available.
                         Add a specific AD attribute etc.
                     #>
-                    Write-Output "There are $($PreferredLicense.TotalUnits - $PreferredLicense.ConsumedUnits) preferred $($PreferredLicense.SkuPartNumber) left."
+                    Write-Output "There are $($PreferredLicense.TotalUnits - $PreferredLicense.ConsumedUnits) preferred $($PreferredLicense.SkuPartNumber) licenses left."
                     break
                 }
                 else{
