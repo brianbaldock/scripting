@@ -1,8 +1,53 @@
-# About goes here
+<#
+    .DESCRIPTION
+        This script is to help you automate a decision process around which subscription you want to assign users to. 
+        This is meant to be used in combination with Azure AD Dynamic Groups for group-based licensing but 
+        can also be used for direct signed licensing. 
+        
+        The idea for this script came when approached about a complex licensing scenario which effectively equaled an M365 E5 license 
+        but was segmented across multiple subset subscription types as well as the M365 E5 grouping. 
 
+        The idea is to be able to detect a preferred licenses current usage and assign a user to it and only assign the user the alternative 
+        subscription if the preferred license is completely in use. This will allow for automated assigning of different licenses according to current usage.
+
+        !! View the comment segmented out under the Get-LicensingUsage function to add additional logic. !!
+         
+        The sample scripts are not supported under any Microsoft standard support 
+        program or service. The sample scripts are provided AS IS without warranty  
+        of any kind. Microsoft further disclaims all implied warranties including,  
+        without limitation, any implied warranties of merchantability or of fitness for 
+        a particular purpose. The entire risk arising out of the use or performance of  
+        the sample scripts and documentation remains with you. In no event shall 
+        Microsoft, its authors, or anyone else involved in the creation, production, or 
+        delivery of the scripts be liable for any damages whatsoever (including, 
+        without limitation, damages for loss of business profits, business interruption, 
+        loss of business information, or other pecuniary loss) arising out of the use 
+        of or inability to use the sample scripts or documentation, even if Microsoft 
+        has been advised of the possibility of such damages.
+
+        Author: Brian Baldock - brian.baldock@microsoft.com
+
+        Requirements: 
+            Have the Azure AD PowerShell module installed by following the instructions at this link: https://aka.ms/AAau56t"
+    
+    .PARAMETER Admin
+        Madatory Parameter - Admin account utilized for accessing the Microsoft 365 platform
+    
+    .PARAMETER PreferredLicense
+        This is the license you would prefer a user be assigned unless there is no available licenses
+
+    .PARAMETER BackupLicense
+        This is the license you would like to use in case the preferred license has no available licenses
+  
+    .EXAMPLE
+        Validate if the preferred license has available licenses if not validate that the backup license has available licenses.
+        . .\Get-LicenseUsage
+        Get-LicenseUsage -Admin <USERPRINCIPALNAME> -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
+#>
 
 # Functions:
 function Get-ActiveAADConnection{
+    # This function will validate if there is already an existing AAD PowerShell Connection
     param(
         [int16]$ConCheck
     )
@@ -33,8 +78,8 @@ function Get-ActiveAADConnection{
     }
 }
 function Get-AADModules{
+    # This function checks which module is installed
     try{
-        #Test for AzureAD or AzureADPreview Module
         if(Get-Module -ListAvailable -Name "AzureAD"){
             Get-ActiveAADConnection -ConCheck 1
         }
@@ -51,6 +96,7 @@ function Get-AADModules{
 }
 
 function Get-LicenseInfo{
+    # This is a trimmed down adaptation of the Get-LicenseInfo.ps1 @ https://github.com/brianbaldock/scripting
     param (
         [Parameter(Mandatory=$True,
         HelpMessage='Enter the admin account for the tenant - Example "admin@domain.com".')]
@@ -109,7 +155,6 @@ function Get-LicenseUsage{
     )
     try{
         Get-AADModules
-        Set-PSDebug -step
         if([array]$PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
             if([array]$BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
                 if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
