@@ -49,84 +49,50 @@ function Get-AADModules{
         return $_.Exception.Message
     }
 }
+
 function Get-LicenseInfo{
     param (
         [Parameter(Mandatory=$True,
-        ParameterSetName='SUB',
-        HelpMessage='Enter the admin account for the tenant - Example "admin@domain.com".')]
-        [Parameter(Mandatory=$True,
-        ParameterSetName='All',
         HelpMessage='Enter the admin account for the tenant - Example "admin@domain.com".')]
         [String]$Admin,
-        
-        [Parameter(Mandatory=$false,
-        ParameterSetName='All',
-        HelpMessage='This is the default parameter, will list all subscriptions and how many licenses are available.')]
-        [switch]$All,
 
-        [Parameter(Mandatory=$false,
-        ParameterSetName='SUB',
-        HelpMessage='Enter the Subscription Name - Example "Microsoft 365 E5".')]
+        [Parameter(Mandatory=$True,
+        HelpMessage='Enter the Subscription Name - Example "SPE_E5".')]
         [String]$SubscriptionName
     )
     
     process {
         try{
-            $SubTable = @()
-            if($PSCmdlet.ParameterSetName -eq "All"){
-                $SubList = Get-AzureADSubscribedSku
-                foreach($Sub in $SubList){
-                    if($Sub.PrepaidUnits.Enabled -gt 0){
-                        $EnabledUnits = $Sub.PrepaidUnits.Enabled
-                    }
-                    Else{
-                        $EnabledUnits = 0
-                    }
-                    
-                    $Table = New-Object PSObject -Property @{
-                        SKUPartNumber = $Sub.SKUPartNumber
-                        ConsumedUnits = $Sub.ConsumedUnits
-                        TotalUnits = $EnabledUnits
-                    }
-                    $SubTable += $Table
+            if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
+                if($Sub.PrepaidUnits.Enabled -gt 0){
+                    $EnabledUnits = $Sub.PrepaidUnits.Enabled
                 }
+                Else{
+                    $EnabledUnits = 0
+                }
+                $Table = New-Object PSObject -Property @{
+                    SKUPartNumber = $SubList.SKUPartNumber
+                    ConsumedUnits = $SubList.ConsumedUnits
+                    TotalUnits = $EnabledUnits
+                }
+                $SubTable += $Table
             }
-
-            if ($PSCmdlet.ParameterSetName -eq "Sub"){
-                try{
-                    if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
-                        if($Sub.PrepaidUnits.Enabled -gt 0){
-                            $EnabledUnits = $Sub.PrepaidUnits.Enabled
-                        }
-                        Else{
-                            $EnabledUnits = 0
-                        }
-                        $Table = New-Object PSObject -Property @{
-                            SKUPartNumber = $SubList.SKUPartNumber
-                            ConsumedUnits = $SubList.ConsumedUnits
-                            TotalUnits = $EnabledUnits
-                        }
-                        $SubTable += $Table
-                    }
-                    else{
-                        Write-Output "`nNo license by the name $($SubscriptionName) has been found. Verify license name by running Get-LicenseInfo.`n"
-                        break
-                    }
-                }
-                catch{
-                    return $_.Exception.Message
-                    break
-                }
+            else{
+                Write-Output "No subscription by the name $($SubscriptionName) found."
+                break
             }
-        }   
+        }
         catch{
             return $_.Exception.Message
+            break
         }
     }
+
     end {
-        return $SubTable
+        return $SubTable | Format-Table -Property SKUPartNumber, ConsumedUnits, TotalUnits
     }
 }
+
 function Get-LicenseUsage{
     param(
         [Parameter(Mandatory=$True,
@@ -145,16 +111,23 @@ function Get-LicenseUsage{
         Get-AADModules
         if($PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
             if($BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
-                Set-PSDebug -Step
                 if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
-                    #Do stuff here like assign user to a group that gets this license
-                    Write-Output "There are enough $($PreferredLicense) left."
+                    <#
+                        Do stuff here, 
+                        Example: Assign a user to a specific group if the preferred license isn't available.
+                        Add a specific AD attribute etc.
+                    #>
+                    Write-Output "There are $($PreferredLicense.TotalUnits - $PreferredLicense.ConsumedUnits) preferred $($PreferredLicense.SkuPartNumber) left."
                     break
                 }
                 else{
                     if($BackupLicense.ConsumedUnits -lt $BackupLicense.TotalUnits){
-                        #Do other stuff here, like assign the user to this group because the preferred license has no licenses left etc...
-                        Write-Output "There are not enough $($PreferredLicense) licences left. Use $($BackupLicense) instead."
+                        <#
+                            Do other stuff here, 
+                            Example: Assign a user to a specific group if the preferred license isn't available.
+                            Add a specific AD attribute etc.
+                        #>
+                        Write-Output "There are not enough $($PreferredLicens.SkuPartNumber) licences left. Use $($BackupLicense.SkuPartNumber) instead."
                         break
                     }
                     else{
@@ -172,4 +145,3 @@ function Get-LicenseUsage{
         break
     }
 }
-Get-LicenseUsage
