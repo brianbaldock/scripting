@@ -90,8 +90,8 @@
             if ($PSCmdlet.ParameterSetName -eq "Sub"){
                 try{
                     if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
-                        if($Sub.PrepaidUnits.Enabled -gt 0){
-                            $EnabledUnits = $Sub.PrepaidUnits.Enabled
+                        if($Sublist.PrepaidUnits.Enabled -gt 0){
+                            $EnabledUnits = $Sublist.PrepaidUnits.Enabled
                         }
                         Else{
                             $EnabledUnits = 0

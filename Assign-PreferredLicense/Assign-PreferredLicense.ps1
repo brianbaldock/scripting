@@ -64,8 +64,8 @@ function Get-LicenseInfo{
     process {
         try{
             if($SubList = Get-AzureADSubscribedSku | Where-Object {$_.SKUPartNumber -eq $($SubscriptionName)}){
-                if($Sub.PrepaidUnits.Enabled -gt 0){
-                    $EnabledUnits = $Sub.PrepaidUnits.Enabled
+                if($Sublist.PrepaidUnits.Enabled -gt 0){
+                    $EnabledUnits = $Sublist.PrepaidUnits.Enabled
                 }
                 Else{
                     $EnabledUnits = 0
@@ -89,7 +89,7 @@ function Get-LicenseInfo{
     }
 
     end {
-        return $SubTable | Format-Table -Property SKUPartNumber, ConsumedUnits, TotalUnits
+        return $SubTable
     }
 }
 
@@ -109,12 +109,13 @@ function Get-LicenseUsage{
     )
     try{
         Get-AADModules
-        if($PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
-            if($BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
+        Set-PSDebug -step
+        if([array]$PreferredLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $PreferredLicense){
+            if([array]$BackupLicense = Get-LicenseInfo -Admin $Admin -SubscriptionName $BackupLicense){
                 if($PreferredLicense.ConsumedUnits -lt $PreferredLicense.TotalUnits){
                     <#
                         Do stuff here, 
-                        Example: Assign a user to a specific group if the preferred license isn't available.
+                        Example: Assign a user to a specific group if the preferred license is available.
                         Add a specific AD attribute etc.
                     #>
                     Write-Output "There are $($PreferredLicense.TotalUnits - $PreferredLicense.ConsumedUnits) preferred $($PreferredLicense.SkuPartNumber) left."
@@ -124,20 +125,21 @@ function Get-LicenseUsage{
                     if($BackupLicense.ConsumedUnits -lt $BackupLicense.TotalUnits){
                         <#
                             Do other stuff here, 
-                            Example: Assign a user to a specific group if the preferred license isn't available.
+                            Example: Assign a user to a specific group if the preferred license isn't available, using the "backup" license.
                             Add a specific AD attribute etc.
                         #>
                         Write-Output "There are not enough $($PreferredLicens.SkuPartNumber) licences left. Use $($BackupLicense.SkuPartNumber) instead."
                         break
                     }
                     else{
-                        
+                        Write-Output "There is a problem comparing the license usage versus availability."
+                        break
                     }
                 }
             }
         }
         else{
-            Write-Output "You're not getting into Get-LicenseInfo yo!"
+            Write-Output "Something is preventing you from accessing Get-LicenseInfo function."
         }
     }
     catch{
