@@ -18,3 +18,4 @@ param(
     [string]$PreferredLicense,
     [string]$SecondaryLicense
 )
+Product_Display_Name

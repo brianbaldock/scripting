@@ -54,7 +54,6 @@ param (
 )
 
 DynamicParam {
-
     #Download latest license list
     $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
     Invoke-WebRequest -Uri "https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv" -OutFile "$($ScriptDir)\SKU-List.csv"
@@ -84,56 +83,38 @@ DynamicParam {
     $AttributeCollection.Add($ValidateSetAttribute)
     $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($BackupLicense, [string], $AttributeCollection)
     $RuntimeParameterDictionary.Add($BackupLicense, $RuntimeParameter)
-    return $RuntimeParameterDictionary
-
+    $RuntimeParameterDictionary
 }
 
 begin {
-    function CheckModules{
-        try{
-            #Test for AzureAD or AzureADPreview Module
-            if(Get-Module -ListAvailable -Name "AzureAD"){
-                return 1
-            }
-            elseif(Get-Module -ListAvailable -Name "AzureADPreview"){
-                return 2
-            }
-            else{
-                return 3
-            }
-        }
-        catch{
-            return $_.Exception.Message
-        }
-    }
     try{
-        switch(CheckModules){
-            1 {Import-Module AzureAD}
-            2 {Import-Module AzureADPreview}
-            3 {
-                Write-Output "Please install the Azure AD powershell module by following the instructions at this link: https://aka.ms/AAau56t"
-                break
-            }
-        }
-    }
-    catch{
-        return $_.Exception.Message
-    }            
-    #Check if already connected to AAD PowerShell:
-    try{
-        $TestConnection = Get-AzureADTenantDetail
+        Get-AzureADTenantDetail
     }
     catch [Microsoft.Open.Azure.AD.CommonLibrary.AadNeedAuthenticationException]{
         try{
-            Connect-AzureAD -AccountId $Admin | Out-Null
+            Connect-AzureAD -AccountID $Admin | Out-Null
         }
         catch{
-            return $_.Exception.Message
+            try{
+                if(!(Get-Module -ListAvailable -Name "AzureADPreview" -Verbose -ErrorVariable $VarError)){
+                    Install-Module -Name AzureADPreview -Verbose -ErrorVariable $VarError
+                    Import-Module -Name AzureADPreview -Verbose -ErrorVariable $VarError
+                    Connect-AzureAD -AccountId $Admin | Out-Null
+                }
+                else{
+                    Import-Module -Name AzureADPreview -Verbose -ErrorVariable $VarError
+                    Connect-AzureAD -AccountId $Admin | Out-Null
+                }
+            }
+            catch{
+                Write-Output $VarError
+            }
         }
     }
 }
 
 process {
+    
     function Get-LicenseInfo{
         param(
             [Parameter(Mandatory=$True,
