@@ -29,6 +29,8 @@
 
         Requirements: 
             Have the Azure AD PowerShell module installed by following the instructions at this link: https://aka.ms/AAau56t"
+            This script will download the latest copy of the "Product names and service plan identifiers for licensing.csv" from the following link before execution
+            in order to ensure all SKUs are available for analysis
     
     .PARAMETER Admin
         Madatory Parameter - Admin account utilized for accessing the Microsoft 365 platform
@@ -38,25 +40,53 @@
 
     .PARAMETER BackupLicense
         This is the license you would like to use in case the preferred license has no available licenses
-  
+
     .EXAMPLE
         Validate if the preferred license has available licenses if not validate that the backup license has available licenses.
         .\Get-LicenseUsage.ps1 -Admin admin@contoso.com -PreferredLicense SPE_E5 -BackupLicense EMSPREMIUM
 #>
 [CmdletBinding()]
+
 param (
     [Parameter(Mandatory=$True,
     HelpMessage='Enter the admin account for the tenant - Example admin@contoso.com.')]
-    [String]$Admin,
-
-    [Parameter(Mandatory=$True,
-    HelpMessage='Provide preferred license name.')]
-    [String]$PreferredLicense,
-
-    [Parameter(Mandatory=$True,
-    HelpMessage='Provide backup license name.')]
-    [string]$BackupLicense
+    [String]$Admin
 )
+
+DynamicParam {
+
+    #Download latest license list
+    $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
+    Invoke-WebRequest -Uri "https://download.microsoft.com/download/e/3/e/e3e9faf2-f28b-490a-9ada-c6089a1fc5b0/Product%20names%20and%20service%20plan%20identifiers%20for%20licensing.csv" -OutFile "$($ScriptDir)\SKU-List.csv"
+    $LicenseSet = Import-Csv -Path "$($ScriptDir)\SKU-List.csv"
+
+    #Define PreferredLicense parameter and populate the validate set
+    $PreferredLicense = 'PreferredLicense'
+    $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+    $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+    $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+    $ParameterAttribute.Mandatory = $true
+    $ParameterAttribute.Position = 1
+    $AttributeCollection.Add($ParameterAttribute)
+    $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($LicenseSet."Product_Display_Name")
+    $AttributeCollection.Add($ValidateSetAttribute)
+    $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($PreferredLicense, [string], $AttributeCollection)
+    $RuntimeParameterDictionary.Add($PreferredLicense, $RuntimeParameter)
+
+    #Defin the BackupLicense parameter and populate with the validate set
+    $BackupLicense = 'BackupLicense'
+    $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+    $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+    $ParameterAttribute.Mandatory = $true
+    $ParameterAttribute.Position = 2
+    $AttributeCollection.Add($ParameterAttribute)
+    $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($LicenseSet."Product_Display_Name")
+    $AttributeCollection.Add($ValidateSetAttribute)
+    $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($BackupLicense, [string], $AttributeCollection)
+    $RuntimeParameterDictionary.Add($BackupLicense, $RuntimeParameter)
+    return $RuntimeParameterDictionary
+
+}
 
 begin {
     function CheckModules{
@@ -124,7 +154,7 @@ process {
                     TotalUnits = $EnabledUnits
                 }
                 $SubTable += $Table
-                return $SubTable
+                $SubTable
             }
             else{
                 Write-Output "No subscription by the name $($SubscriptionName) found."
@@ -132,7 +162,7 @@ process {
             }
         }
         catch{
-            return $_.Exception.Message
+            $_.Exception.Message
             break
         }
     }
@@ -173,7 +203,7 @@ end {
         }
     }
     catch{
-        return $_.Exception.Message
+        $_.Exception.Message
         break
     }        
 }
