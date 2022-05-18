@@ -35,9 +35,9 @@ $systemmessagecolor = "cyan"
 $processmessagecolor = "green"
 
 # Application (client) ID, tenant ID and secret
-$clientid = "26179577-ab75-47ef-b076-0503a82b9e6e"
-$tenantid = "6e00d973-41f0-483c-a664-a98bd018a6fe"
-$clientsecret = "PY98Q~zAh-ad-BT9qrhn4t_Jh36Hs_VDaTIoqbw1"
+$clientid = ""
+$tenantid = ""
+$clientsecret = ""
 
 Clear-Host
 
